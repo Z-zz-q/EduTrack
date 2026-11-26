@@ -31,7 +31,7 @@ def sign_up():
         print("username already exists!")
         return
     password=input("Enter password")
-    user[username]=hash_password(password)# Encrypt password and add new user into users dictionary
+    users[username]=hash_password(password)# Encrypt password and add new user into users dictionary
     save_users(users)# Save updated users dictionary back to text file
     print("Sign up  successful!")
 
