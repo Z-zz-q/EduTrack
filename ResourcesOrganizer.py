@@ -34,8 +34,6 @@ def create_database():
     connection.close()         # Closes the database connection
 
 
-create_database()
-
 def move_to_trash(resource_id):
     """Moves a resource as deleted without removing it permanently."""
 
@@ -51,3 +49,47 @@ def move_to_trash(resource_id):
     connection.commit()
     connection.close()
 
+
+def restore_resource(resource_id):
+    """Restores a resource from the trash."""
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE resources
+        SET is_deleted = 0, deleted_at = NULL
+        WHERE id = ?
+    """, (resource_id,))
+
+    connection.commit()
+    connection.close()
+
+
+def clear_resource(resource_id):
+    """Permanently deletes a resource and its uploaded file."""
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT file_path FROM resources WHERE id = ?", 
+        (resource_id,)
+        )
+    result = cursor.fetchone()  # gets the saved file path
+
+    if result:
+        file_path = Path(result[0])   # converts the file path into a Path object
+
+        if file_path.exists():
+            file_path.unlink()  # permanently deletes the uploaded file
+
+    cursor.execute(
+        "DELETE FROM resources WHERE id = ?", 
+        (resource_id,)
+        )
+
+    connection.commit()
+    connection.close()
+
+create_database()
