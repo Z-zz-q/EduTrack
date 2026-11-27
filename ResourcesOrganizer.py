@@ -2,6 +2,7 @@ import os                       # open uploaded files
 import shutil                   # copies uploaded files into the resources folder
 import sqlite3                  # stores resource information in a local database
 from pathlib import Path        # safely handle paths
+from datetime import datetime   # records the date and time when a resource is deleted
 
 PROJECT_DIR = Path(__file__).resolve().parent    # Gets the folder where this Python file is located
 RESOURCES_DIR = PROJECT_DIR / "resources"        # Sets the folder used to store uploaded resources
@@ -23,12 +24,72 @@ def create_database():
             resource_type TEXT NOT NULL,
             title TEXT NOT NULL,
             file_path TEXT NOT NULL,
-            uploaded_at TEXT NOT NULL
+            uploaded_at TEXT NOT NULL,
+            is_deleted INTEGER NOT NULL DEFAULT 0,
+            deleted_at TEXT
         )
     """)
 
     connection.commit()        # Saves the table creation
     connection.close()         # Closes the database connection
 
+
+def move_to_trash(resource_id):
+    """Moves a resource as deleted without removing it permanently."""
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE resources
+        SET is_deleted = 1, deleted_at = ?
+        WHERE id = ?
+    """, (datetime.now().strftime("%Y-%m-%d %H:%M"), resource_id))
+
+    connection.commit()
+    connection.close()
+
+
+def restore_resource(resource_id):
+    """Restores a resource from the trash."""
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute("""
+        UPDATE resources
+        SET is_deleted = 0, deleted_at = NULL
+        WHERE id = ?
+    """, (resource_id,))
+
+    connection.commit()
+    connection.close()
+
+
+def clear_resource(resource_id):
+    """Permanently deletes a resource and its uploaded file."""
+
+    connection = sqlite3.connect(DATABASE_PATH)
+    cursor = connection.cursor()
+
+    cursor.execute(
+        "SELECT file_path FROM resources WHERE id = ?", 
+        (resource_id,)
+        )
+    result = cursor.fetchone()  # gets the saved file path
+
+    if result:
+        file_path = Path(result[0])   # converts the file path into a Path object
+
+        if file_path.exists():
+            file_path.unlink()  # permanently deletes the uploaded file
+
+    cursor.execute(
+        "DELETE FROM resources WHERE id = ?", 
+        (resource_id,)
+        )
+
+    connection.commit()
+    connection.close()
 
 create_database()
