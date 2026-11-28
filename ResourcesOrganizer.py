@@ -1,14 +1,31 @@
-import os                       # open uploaded files
-import shutil                   # copies uploaded files into the resources folder
-import sqlite3                  # stores resource information in a local database
-from pathlib import Path        # safely handle paths
-from datetime import datetime   # records the date and time when a resource is deleted
+import os                             # open uploaded files
+import shutil                         # copies uploaded files into the resources folder
+import sqlite3                        # stores resource information in a local database
+from pathlib import Path              # safely handle paths
+from datetime import datetime         # records the date and time when a resource is deleted
+import tkinter as tk                  # creates the application window and basic widgets
+from tkinter import ttk, filedialog   # provides styled widgets and a file dialog
 
 PROJECT_DIR = Path(__file__).resolve().parent    # Gets the folder where this Python file is located
 RESOURCES_DIR = PROJECT_DIR / "resources"        # Sets the folder used to store uploaded resources
 RESOURCES_DIR.mkdir(exist_ok=True)               # Creates the resources folder if it doesn't exist
 
 DATABASE_PATH = PROJECT_DIR / "edutrack.db"      # Sets the location of the local database file
+
+
+def choose_file():
+    """Opens a dialog for the user to select a study resource file."""
+
+    file_path = filedialog.askopenfilename(
+        title="Choose a study resource",
+        filetypes=[
+            ("Supported files", "*.pdf *.doc *.docx *.ppt *.pptx *.png *.jpg *.jpeg"),
+            ("All files", "*.*")
+        ]
+    )
+
+    if file_path:
+        selected_file_var.set(file_path)      # Shows the selected file path in the form
 
 
 def create_database():
@@ -92,4 +109,66 @@ def clear_resource(resource_id):
     connection.commit()
     connection.close()
 
-create_database()
+create_database()  # Creates the database table when this file runs
+
+root = tk.Tk()                                          # Creates the main application window
+root.title("EduTrack - Study Resources Organizer")      # Sets the window title
+root.geometry("800x550")                                # Sets the starting window size
+
+subject_var = tk.StringVar()                            # Stores the subject entered by the user
+resource_type_var = tk.StringVar(value="Notes")         # Stores the selected resource type
+title_var = tk.StringVar()                              # Stores the resource title
+selected_file_var = tk.StringVar()                      # Stores the path of the selected file
+
+main_frame = ttk.Frame(root, padding=20)                # Creates the main content area
+main_frame.pack(fill="both", expand=True)
+
+ttk.Label(
+    main_frame,
+    text="Study Resources Organizer",
+    font=("Arial", 18, "bold")
+).pack(anchor="w", pady=(0, 15))
+
+form_frame = ttk.LabelFrame(
+    main_frame,
+    text="Upload Study Resource",
+    padding=15
+)
+form_frame.pack(fill="x")
+
+ttk.Label(form_frame, text="Subject:").grid(row=0, column=0, sticky="w", pady=6)
+ttk.Entry(form_frame, textvariable=subject_var, width=45).grid(
+    row=0, column=1, sticky="ew", padx=(10, 0), pady=6
+)
+
+ttk.Label(form_frame, text="Resource Type:").grid(row=1, column=0, sticky="w", pady=6)
+ttk.Combobox(
+    form_frame,
+    textvariable=resource_type_var,
+    values=["Notes", "Slides", "Past Year Questions"],
+    state="readonly",
+    width=42
+).grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=6)
+
+ttk.Label(form_frame, text="Title:").grid(row=2, column=0, sticky="w", pady=6)
+ttk.Entry(form_frame, textvariable=title_var, width=45).grid(
+    row=2, column=1, sticky="ew", padx=(10, 0), pady=6
+)
+
+ttk.Label(form_frame, text="File:").grid(row=3, column=0, sticky="w", pady=6)
+ttk.Entry(
+    form_frame,
+    textvariable=selected_file_var,
+    state="readonly",
+    width=35
+).grid(row=3, column=1, sticky="ew", padx=(10, 8), pady=6)
+
+ttk.Button(
+    form_frame,
+    text="Choose File",
+    command=choose_file
+).grid(row=3, column=2, pady=6)
+
+form_frame.columnconfigure(1, weight=1)  # Lets input fields expand with the window
+
+root.mainloop()  # Keeps the window open and listens for user actions
